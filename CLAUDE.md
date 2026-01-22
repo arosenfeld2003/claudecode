@@ -14,12 +14,16 @@ claudecode/
 ├── docs/
 │   ├── ralph-wiggum-methodology.md   # Synthesized Ralph workflow guide
 │   ├── anthropic-best-practices.md   # Official Anthropic guidance
-│   └── oversight-and-control.md      # Atomic control patterns
+│   ├── oversight-and-control.md      # Atomic control patterns
+│   └── open-source-models.md         # Local model setup guide
 ├── templates/                   # Ready-to-use customizable files
 │   ├── PROMPT_plan.md           # Planning mode prompt
 │   ├── PROMPT_build.md          # Building mode prompt
 │   ├── AGENTS.md                # Operational guide template
 │   └── loop.sh                  # Enhanced Ralph loop script
+├── scripts/                     # Automation scripts
+│   ├── setup-ollama.sh          # Ollama + model setup
+│   └── evaluate-models.sh       # Model comparison runner
 └── specs/                       # Your requirement specs go here
 ```
 
@@ -41,6 +45,10 @@ while :; do cat PROMPT.md | claude ; done
 ./templates/loop.sh 20           # Build mode, max 20 iterations
 ./templates/loop.sh plan         # Plan mode, unlimited
 ./templates/loop.sh plan 5       # Plan mode, max 5 iterations
+
+# Local models via Ollama
+./templates/loop.sh --local minimax-m2.1       # Build with local model
+./templates/loop.sh plan --local qwen2.5-coder:7b  # Plan with local model
 ```
 
 ## Key Principles
@@ -82,8 +90,37 @@ Use these keywords to invoke deeper reasoning:
 | `PROMPT_plan.md` | Instructions for planning mode |
 | `PROMPT_build.md` | Instructions for building mode |
 
+## Local Models (Ollama)
+
+Use local open source models via Ollama as alternatives to Claude Code:
+
+```bash
+# Setup
+./scripts/setup-ollama.sh
+
+# Use with Ralph loop
+./templates/loop.sh --local minimax-m2.1
+./templates/loop.sh plan --local qwen2.5-coder:7b
+
+# Direct Claude Code usage
+export ANTHROPIC_AUTH_TOKEN=ollama
+export ANTHROPIC_BASE_URL=http://localhost:11434
+claude --model minimax-m2.1
+```
+
+### Recommended Models (48GB Mac)
+
+| Model | Memory | Best For |
+|-------|--------|----------|
+| MiniMax M2.1 | ~9GB | Agentic tasks, tool calling |
+| Qwen2.5 Coder 7B | ~4GB | Fast iterations |
+| Qwen2.5 Coder 32B | ~20GB | Max coding power |
+
+See `docs/open-source-models.md` for full setup and evaluation guide.
+
 ## See Also
 - `docs/ralph-wiggum-methodology.md` - Full methodology details
 - `docs/anthropic-best-practices.md` - Official Anthropic guidance
 - `docs/oversight-and-control.md` - Sandbox setup, escape hatches
+- `docs/open-source-models.md` - Local model setup and evaluation
 - `ralph-playbook/README.md` - Original comprehensive reference

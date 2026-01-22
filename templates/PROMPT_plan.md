@@ -1,9 +1,9 @@
-0a. Study `specs/*` with up to 250 parallel Sonnet subagents to learn the application specifications.
+0a. Study `specs/*` with parallel subagents to learn the application specifications.
 0b. Study @IMPLEMENTATION_PLAN.md (if present) to understand the plan so far.
-0c. Study `src/lib/*` with up to 250 parallel Sonnet subagents to understand shared utilities & components.
+0c. Study `src/lib/*` with parallel subagents to understand shared utilities & components.
 0d. For reference, the application source code is in `src/*`.
 
-1. Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use up to 500 Sonnet subagents to study existing source code in `src/*` and compare it against `specs/*`. Use an Opus subagent to analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented. Ultrathink. Consider searching for TODO, minimal implementations, placeholders, skipped/flaky tests, and inconsistent patterns. Study @IMPLEMENTATION_PLAN.md to determine starting point for research and keep it up to date with items considered complete/incomplete using subagents.
+1. Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use parallel subagents to study existing source code in `src/*` and compare it against `specs/*`. Analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented. Think step by step carefully. Consider searching for TODO, minimal implementations, placeholders, skipped/flaky tests, and inconsistent patterns. Study @IMPLEMENTATION_PLAN.md to determine starting point for research and keep it up to date with items considered complete/incomplete using subagents.
 
 IMPORTANT: Plan only. Do NOT implement anything. Do NOT assume functionality is missing; confirm with code search first. Treat `src/lib` as the project's standard library for shared utilities and components. Prefer consolidated, idiomatic implementations there over ad-hoc copies.
 
@@ -13,6 +13,6 @@ ULTIMATE GOAL: We want to achieve [YOUR PROJECT GOAL HERE]. Consider missing ele
 CUSTOMIZATION NOTES:
 - Replace [YOUR PROJECT GOAL HERE] with your specific goal
 - Adjust path references (src/*, src/lib/*) to match your project structure
-- Modify subagent counts based on your context budget
 - Add project-specific constraints as needed
+- Works with Claude Code (cloud) and local models via Ollama
 -->
