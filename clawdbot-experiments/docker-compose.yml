@@ -1,0 +1,21 @@
+services:
+  clawdbot:
+    build: .
+    container_name: clawdbot
+    volumes:
+      # Persist config between runs
+      - clawdbot-config:/home/clawdbot/.clawdbot
+      # Mount skills directory for development
+      - ./skills:/home/clawdbot/skills:ro
+    environment:
+      # API key for Claude (set in .env file)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    # Interactive mode for onboarding
+    stdin_open: true
+    tty: true
+    # Restart policy
+    restart: unless-stopped
+
+volumes:
+  clawdbot-config:
+    name: clawdbot-config
