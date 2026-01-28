@@ -3,3 +3,11 @@
 
 # Local config backups
 *.local
+
+# Reports (contain personal email data)
+reports/*.md
+reports/*.json
+
+# npm artifacts
+scripts/node_modules/
+scripts/package-lock.json

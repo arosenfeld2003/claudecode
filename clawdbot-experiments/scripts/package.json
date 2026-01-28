@@ -1,0 +1,13 @@
+{
+  "name": "clawdbot-email-scanner",
+  "version": "1.0.0",
+  "description": "Read-only iCloud email scanner for inbox cleanup",
+  "main": "email-scanner.js",
+  "scripts": {
+    "scan": "node email-scanner.js"
+  },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.7.1"
+  }
+}
