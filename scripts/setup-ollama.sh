@@ -3,8 +3,8 @@
 # Requires: macOS with Apple Silicon, Homebrew (optional)
 #
 # Usage: ./scripts/setup-ollama.sh [--minimal|--full]
-#   --minimal: Only MiniMax M2.1 (recommended starting point)
-#   --full:    All recommended models
+#   --minimal: Only Qwen 7B (recommended starting point, fast)
+#   --full:    All recommended models including Qwen 32B
 
 set -euo pipefail
 
@@ -72,14 +72,14 @@ fi
 echo ""
 echo "Pulling models..."
 
-# Tier 1: Best for 48GB M4
+# Tier 1: Best for 48GB M4 (truly local models only)
 MODELS_MINIMAL=(
-    "minimax-m2.1"          # ~9GB, best for agentic tasks
+    "qwen2.5-coder:7b"      # ~4GB, fast iterations
 )
 
 MODELS_ADDITIONAL=(
-    "qwen2.5-coder:7b"      # ~4GB, fast iterations
     "qwen2.5-coder:32b"     # ~20GB, max coding power
+    "deepseek-coder-v2"     # ~15GB, multi-language support
 )
 
 # Pull minimal models
@@ -88,9 +88,6 @@ for model in "${MODELS_MINIMAL[@]}"; do
     echo "Pulling $model..."
     ollama pull "$model" || {
         echo "Warning: Failed to pull $model"
-        echo "This model may not be available yet. Try:"
-        echo "  ollama pull qwen2.5-coder:7b"
-        echo "as an alternative."
     }
 done
 
@@ -112,12 +109,12 @@ echo "Installed models:"
 ollama list
 echo ""
 echo "To use with Ralph loop:"
-echo "  ./templates/loop.sh --local minimax-m2.1"
 echo "  ./templates/loop.sh --local qwen2.5-coder:7b"
+echo "  ./templates/loop.sh --local qwen2.5-coder:32b"
 echo ""
 echo "To use with Claude Code directly:"
 echo "  export ANTHROPIC_AUTH_TOKEN=ollama"
 echo "  export ANTHROPIC_BASE_URL=http://localhost:11434"
-echo "  claude --model minimax-m2.1"
+echo "  claude --model qwen2.5-coder:32b"
 echo ""
 echo "See docs/open-source-models.md for full documentation."

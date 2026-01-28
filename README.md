@@ -9,6 +9,42 @@ A toolkit for letting Claude Code work autonomously on your codebase:
 - **Build mode**: Claude implements, tests, commits, and iterates until done
 - **Local models**: Optional support for running open source models via Ollama
 
+## Core Principle: Bash Controls Claude
+
+**This is the most important concept to understand.**
+
+There are two ways to run autonomous AI coding loops:
+
+```
+CORRECT (this repo):              WRONG (plugin approach):
+┌─────────────────────┐           ┌─────────────────────┐
+│  Bash loop (loop.sh)│           │  Claude Code        │
+│         │           │           │         │           │
+│         ▼           │           │         ▼           │
+│  spawns Claude      │           │  internal plugin    │
+│  fresh each time    │           │  prevents completion│
+└─────────────────────┘           └─────────────────────┘
+```
+
+**Why this matters:**
+
+- **Context windows are arrays** - every message adds to them, and eventually they compress/compact, losing data
+- **Plugin loops don't solve context rot** - Claude stays running with the same context, just working longer
+- **External bash loops give fresh context** - each iteration spawns a new Claude instance with clean state
+
+**How we implement it:**
+
+```bash
+# loop.sh spawns Claude as a child process
+while true; do
+    cat PROMPT.md | claude -p --dangerously-skip-permissions
+done
+```
+
+Each iteration: fresh Claude → does one task → commits → exits → bash spawns fresh Claude again.
+
+The plan and progress persist in files (`IMPLEMENTATION_PLAN.md`), not in Claude's context.
+
 ## Quick Start
 
 ```bash
@@ -63,7 +99,7 @@ cp templates/PROMPT_plan.md templates/PROMPT_build.md templates/loop.sh your-pro
 ./scripts/setup-ollama.sh
 
 # Use local models
-./loop.sh --local minimax-m2.1
+./loop.sh --local qwen2.5-coder:32b
 ./loop.sh plan --local qwen2.5-coder:7b
 ```
 
@@ -103,4 +139,5 @@ The loop runs Claude in headless mode (`-p`) with auto-approved tool calls. Each
 ## Credits
 
 - [Geoff Huntley](https://ghuntley.com) - Ralph Wiggum methodology
+- [Alex Dunlop](https://medium.com/@alexjamesdunlop) - ["Everyone's Using Ralph Loops Wrong"](https://medium.com/@alexjamesdunlop/everyones-using-ralph-loops-wrong-here-s-what-actually-works-e5e4208873c1) article explaining the bash-controls-Claude principle
 - [Anthropic](https://anthropic.com) - Claude Code and best practices documentation

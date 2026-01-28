@@ -9,9 +9,9 @@
 #   ./loop.sh plan                       # Plan mode, unlimited iterations
 #   ./loop.sh plan 5                     # Plan mode, max 5 iterations
 #   ./loop.sh plan-work "user auth"      # Scoped planning for work branch
-#   ./loop.sh --local minimax-m2.1       # Build mode with local MiniMax model
-#   ./loop.sh plan --local qwen2.5-coder:7b  # Plan mode with local Qwen model
-#   ./loop.sh plan 5 --local minimax-m2.1    # Plan mode, 5 iterations, local model
+#   ./loop.sh --local qwen2.5-coder:32b  # Build mode with local Qwen 32B model
+#   ./loop.sh plan --local qwen2.5-coder:7b  # Plan mode with local Qwen 7B model
+#   ./loop.sh plan 5 --local qwen2.5-coder:32b   # Plan mode, 5 iterations, local model
 
 set -euo pipefail
 
@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
             LOCAL_MODEL="${2:-}"
             if [ -z "$LOCAL_MODEL" ]; then
                 echo "Error: --local requires a model name"
-                echo "Example: ./loop.sh --local minimax-m2.1"
+                echo "Example: ./loop.sh --local qwen2.5-coder:32b"
                 exit 1
             fi
             shift 2

@@ -47,7 +47,7 @@ while :; do cat PROMPT.md | claude ; done
 ./templates/loop.sh plan 5       # Plan mode, max 5 iterations
 
 # Local models via Ollama
-./templates/loop.sh --local minimax-m2.1       # Build with local model
+./templates/loop.sh --local qwen2.5-coder:32b  # Build with local model
 ./templates/loop.sh plan --local qwen2.5-coder:7b  # Plan with local model
 ```
 
@@ -99,22 +99,24 @@ Use local open source models via Ollama as alternatives to Claude Code:
 ./scripts/setup-ollama.sh
 
 # Use with Ralph loop
-./templates/loop.sh --local minimax-m2.1
+./templates/loop.sh --local qwen2.5-coder:32b
 ./templates/loop.sh plan --local qwen2.5-coder:7b
 
 # Direct Claude Code usage
 export ANTHROPIC_AUTH_TOKEN=ollama
 export ANTHROPIC_BASE_URL=http://localhost:11434
-claude --model minimax-m2.1
+claude --model qwen2.5-coder:32b
 ```
 
 ### Recommended Models (48GB Mac)
 
 | Model | Memory | Best For |
 |-------|--------|----------|
-| MiniMax M2.1 | ~9GB | Agentic tasks, tool calling |
+| Qwen2.5 Coder 32B | ~20GB | Max coding power, complex tasks |
 | Qwen2.5 Coder 7B | ~4GB | Fast iterations |
-| Qwen2.5 Coder 32B | ~20GB | Max coding power |
+| DeepSeek Coder V2 | ~15GB | Multi-language support |
+
+> **Note**: Some Ollama models like `minimax-m2.1:cloud` are cloud-proxied (not truly local). They cost money per token and send data to external servers. The models above run entirely on your machine.
 
 See `docs/open-source-models.md` for full setup and evaluation guide.
 

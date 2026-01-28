@@ -16,8 +16,8 @@ RESULTS_DIR="results"
 # Models to evaluate
 # Cloud baseline + local models
 MODELS=(
-    "cloud:opus"           # Claude Code baseline (Opus)
-    "local:minimax-m2.1"   # Best for agentic tasks
+    "cloud:opus"              # Claude Code baseline (Opus)
+    "local:qwen2.5-coder:32b" # Best for complex coding tasks
     "local:qwen2.5-coder:7b"  # Fast iterations
 )
 

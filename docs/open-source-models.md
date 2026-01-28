@@ -15,13 +15,26 @@ This guide covers using local open source models as alternatives to Claude Code 
 ./scripts/setup-ollama.sh
 
 # 2. Run Ralph with local model
-./templates/loop.sh --local minimax-m2.1
+./templates/loop.sh --local qwen2.5-coder:32b
 
 # 3. Or use Claude Code directly with Ollama
 export ANTHROPIC_AUTH_TOKEN=ollama
 export ANTHROPIC_BASE_URL=http://localhost:11434
-claude --model minimax-m2.1
+claude --model qwen2.5-coder:32b
 ```
+
+## Local vs Cloud Models
+
+**Important distinction**: Ollama supports two types of models:
+
+| Type | Privacy | Cost | Example |
+|------|---------|------|---------|
+| **Local** | Data stays on device | Free | `qwen2.5-coder:32b` |
+| **Cloud-proxied** | Data sent to provider | Per-token fees | `minimax-m2.1:cloud` |
+
+Cloud-proxied models (tagged with `:cloud`) route requests through external APIs. They are **not** truly local - your prompts and code leave your machine and you pay per token.
+
+**This guide focuses on truly local models** for free, private operation.
 
 ## Ollama Anthropic API Compatibility
 
@@ -37,24 +50,17 @@ The `loop.sh` script handles this automatically with the `--local` flag.
 
 ## Recommended Models
 
-### Tier 1: Best for 48GB M4 Mac
+### Tier 1: Best for 48GB M4 Mac (Truly Local)
 
 | Model | Memory | Speed | Best For | Ollama Command |
 |-------|--------|-------|----------|----------------|
-| **MiniMax M2.1** | ~9GB | 50-80 t/s | Agentic tasks, tool calling | `ollama pull minimax-m2.1` |
 | **Qwen2.5 Coder 32B** | ~20GB | 20-30 t/s | Max coding power | `ollama pull qwen2.5-coder:32b` |
 | **Qwen2.5 Coder 7B** | ~4GB | 80+ t/s | Fast iterations | `ollama pull qwen2.5-coder:7b` |
+| **DeepSeek Coder V2** | ~15GB | 25-35 t/s | Multi-language (300+) | `ollama pull deepseek-coder-v2` |
 
 ### Why These Models?
 
-#### MiniMax M2.1 (Recommended for Agentic Tasks)
-- Only 10B activated parameters (despite 229B total MoE architecture)
-- 49.4% on Multi-SWE-Bench (competitive with Claude 3.5 Sonnet)
-- Advanced "Interleaved Thinking" optimized for tool calling
-- Works well with Claude Code, Cline, and other agentic frameworks
-- Best balance of capability and resource usage
-
-#### Qwen2.5 Coder 32B (Maximum Coding Capability)
+#### Qwen2.5 Coder 32B (Recommended - Maximum Coding Capability)
 - Competitive with GPT-4o on coding benchmarks
 - Best open-source performer on code generation tasks
 - Fits comfortably in 48GB at Q4_K_M quantization
@@ -66,14 +72,18 @@ The `loop.sh` script handles this automatically with the `--local` flag.
 - 80+ tokens/second on M4
 - Ideal for rapid iteration and simple tasks
 
+#### DeepSeek Coder V2 (Multi-Language)
+- Supports 300+ programming languages
+- 128K context window (largest among local options)
+- Strong performance on code completion and generation
+- Good balance of speed and capability
+
 ### Tier 2: Additional Options
 
 | Model | Memory | Use Case | Ollama Command |
 |-------|--------|----------|----------------|
-| GPT-OSS 20B | ~12GB | Complex reasoning | `ollama pull gpt-oss:20b` |
-| Arcee Agent 7B | ~5GB | Specialized tool calling | `ollama pull arcee-agent:7b` |
-| DeepSeek Coder V2 | ~15GB | Multi-language (300+) | `ollama pull deepseek-coder-v2` |
 | Codestral 22B | ~13GB | Code review, bug fixing | `ollama pull codestral:22b` |
+| Arcee Agent 7B | ~5GB | Specialized tool calling | `ollama pull arcee-agent:7b` |
 
 ### Models Too Large for Local
 
@@ -90,14 +100,14 @@ The `loop.sh` script handles this automatically with the `--local` flag.
 # Cloud (Claude Code default)
 ./templates/loop.sh plan 5
 
-# Local with MiniMax M2.1
-./templates/loop.sh plan 5 --local minimax-m2.1
+# Local with Qwen 32B (recommended)
+./templates/loop.sh plan 5 --local qwen2.5-coder:32b
 
 # Local with Qwen 7B (faster)
 ./templates/loop.sh --local qwen2.5-coder:7b
 
 # Build mode with local model
-./templates/loop.sh 20 --local minimax-m2.1
+./templates/loop.sh 20 --local qwen2.5-coder:32b
 ```
 
 ### Argument Order
@@ -105,9 +115,9 @@ The `loop.sh` script handles this automatically with the `--local` flag.
 The `--local` flag can appear anywhere in the argument list:
 
 ```bash
-./templates/loop.sh --local minimax-m2.1           # Build mode
-./templates/loop.sh plan --local minimax-m2.1      # Plan mode
-./templates/loop.sh plan 5 --local minimax-m2.1    # Plan mode, 5 iterations
+./templates/loop.sh --local qwen2.5-coder:32b      # Build mode
+./templates/loop.sh plan --local qwen2.5-coder:32b # Plan mode
+./templates/loop.sh plan 5 --local qwen2.5-coder:32b # Plan mode, 5 iterations
 ./templates/loop.sh 20 --local qwen2.5-coder:7b    # Build mode, 20 iterations
 ```
 
@@ -117,8 +127,8 @@ The `--local` flag can appear anywhere in the argument list:
 
 | Model | Memory Used | Remaining | Token Speed | Context Window |
 |-------|-------------|-----------|-------------|----------------|
-| MiniMax M2.1 | ~9GB | ~39GB | 50-80 t/s | 204K tokens |
 | Qwen 7B | ~4GB | ~44GB | 80+ t/s | 32K tokens |
+| DeepSeek Coder V2 | ~15GB | ~33GB | 25-35 t/s | 128K tokens |
 | Qwen 32B | ~20GB | ~28GB | 20-30 t/s | 32K tokens |
 
 ### Comparison vs Claude Code
@@ -173,7 +183,7 @@ Results are saved to `results/<model>-<timestamp>.log`.
 | Task Type | Recommended Model |
 |-----------|-------------------|
 | Quick file edits | Qwen 7B (speed) |
-| Planning | MiniMax M2.1 (tool calling) |
+| Planning | Qwen 32B (capability) |
 | Complex refactoring | Qwen 32B or Claude Code |
 | Debugging | Claude Code (complex reasoning) |
 | Code review | Local models work well |
@@ -194,12 +204,12 @@ ollama serve
 ### Model Not Found
 
 ```
-Error: model 'minimax-m2.1' not found
+Error: model 'qwen2.5-coder:32b' not found
 ```
 
 **Solution**: Pull the model first:
 ```bash
-ollama pull minimax-m2.1
+ollama pull qwen2.5-coder:32b
 ```
 
 ### Out of Memory
@@ -213,7 +223,7 @@ If you see memory errors or severe slowdown:
 
 Expected speeds on M4:
 - Qwen 7B: 80+ t/s
-- MiniMax M2.1: 50-80 t/s
+- DeepSeek Coder V2: 25-35 t/s
 - Qwen 32B: 20-30 t/s
 
 If significantly slower:
@@ -224,11 +234,10 @@ If significantly slower:
 ### Tool Calling Issues
 
 Some models handle tool calling better than others:
-- **Best**: MiniMax M2.1 (designed for this)
 - **Good**: Qwen 2.5 Coder series
 - **Variable**: Other models
 
-If a model struggles with tools, try MiniMax M2.1 or fall back to Claude Code.
+If a model struggles with tools, fall back to Claude Code.
 
 ## Version Requirements
 
