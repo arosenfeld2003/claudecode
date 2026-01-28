@@ -3,8 +3,13 @@
 
 FROM node:22-slim
 
-# Install clawdbot globally
-RUN npm install -g clawdbot
+# Install git for cloning repos if needed
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Install clawdbot globally with verbose output for debugging
+RUN npm install -g clawdbot --loglevel verbose || \
+    (echo "npm install failed, trying with legacy peer deps..." && \
+     npm install -g clawdbot --legacy-peer-deps)
 
 # Create non-root user for security
 RUN useradd -m -s /bin/bash clawdbot
