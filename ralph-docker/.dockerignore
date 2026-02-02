@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files (don't include actual .env)
+.env
+
+# Documentation (keep README for reference but not needed in image)
+# README.md
+
+# Node modules if any local dev happens
+node_modules
+
+# Test files
+*.test.js
+*.spec.js
+__tests__

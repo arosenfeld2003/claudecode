@@ -1,0 +1,31 @@
+services:
+  # OAuth mode (Max subscription) - uses ~/.claude credentials
+  ralph:
+    build: .
+    volumes:
+      # Mount the workspace (project) directory
+      - ${WORKSPACE_PATH:-.}:/home/ralph/workspace
+      # Mount Claude credentials (read-only for security)
+      - ${CLAUDE_CONFIG:-~/.claude}:/home/ralph/.claude:ro
+    environment:
+      - RALPH_MODE=${RALPH_MODE:-build}
+      - RALPH_MAX_ITERATIONS=${RALPH_MAX_ITERATIONS:-0}
+      - RALPH_MODEL=${RALPH_MODEL:-opus}
+      - RALPH_OUTPUT_FORMAT=${RALPH_OUTPUT_FORMAT:-pretty}
+      - RALPH_PUSH_AFTER_COMMIT=${RALPH_PUSH_AFTER_COMMIT:-true}
+    # Allow access to host network for Ollama
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    stdin_open: true
+    tty: true
+
+  # Ollama mode (local models) - uses host Ollama server
+  ralph-ollama:
+    extends: ralph
+    environment:
+      # Override auth to use Ollama
+      - ANTHROPIC_AUTH_TOKEN=ollama
+      - ANTHROPIC_BASE_URL=http://host.docker.internal:11434
+      - RALPH_MODEL=${RALPH_MODEL:-qwen2.5-coder:32b}
+    profiles:
+      - ollama
