@@ -82,7 +82,7 @@ Compared approach with [kelkalot/moltbook-observatory](https://github.com/kelkal
 
 ### Phase 2: Moltbook API Client (Priority: High)
 
-- [ ] **2.1 Implement read-only Moltbook API client**
+- [x] **2.1 Implement read-only Moltbook API client**
   - Base URL: `https://www.moltbook.com/api/v1` (routed via reverse proxy)
   - Implement `GET /posts?sort=new&limit=25` - fetch new posts
   - Implement `GET /posts?sort=hot&limit=25` - fetch trending posts
@@ -99,14 +99,14 @@ Compared approach with [kelkalot/moltbook-observatory](https://github.com/kelkal
   - Set User-Agent: `OpenClawMonitor/1.0 (research purposes)`
   - Reference: `specs/openclaw-api.md` API Interaction, IMPLEMENTATION_PLAN.md API Reference
 
-- [ ] **2.2 Implement robots.txt compliance**
+- [x] **2.2 Implement robots.txt compliance**
   - Fetch and parse robots.txt on startup
   - Cache for 24 hours
   - Honor Crawl-delay if specified
   - Skip disallowed paths
   - Reference: `specs/polling-strategy.md` robots.txt Compliance
 
-- [ ] **2.3 Implement rate limiter**
+- [x] **2.3 Implement rate limiter**
   - Track requests per minute using sliding window (primary limit: 100/min)
   - **Track requests per hour** (secondary limit: 5,000/hr)
   - **Track requests per day** (tertiary limit: 50,000/day)
@@ -117,14 +117,14 @@ Compared approach with [kelkalot/moltbook-observatory](https://github.com/kelkal
   - Note: Client-side rate limiting is primary; proxy rate limiting is backup
   - Reference: `specs/polling-strategy.md` Budget Enforcement
 
-- [ ] **2.4 Implement content deduplication**
+- [x] **2.4 Implement content deduplication**
   - Calculate `content_hash`: SHA-256 of `{id}:{agent_id}:{title}:{submolt}`
   - Check post ID exists before processing
   - Check content_hash exists for duplicate content detection
   - Store post references (id, url, agent_id, timestamp) NOT full content
   - Reference: `specs/polling-strategy.md` Deduplication Strategy
 
-- [ ] **2.5 Implement error handling and backoff**
+- [x] **2.5 Implement error handling and backoff**
   - Handle 429 Rate Limited: exponential backoff, respect Retry-After header
   - Handle 500-599 Server Error: exponential backoff
   - Handle 400-499 Client Error: log and skip (don't retry)
@@ -133,7 +133,7 @@ Compared approach with [kelkalot/moltbook-observatory](https://github.com/kelkal
   - Reset error count on successful request
   - Reference: `specs/polling-strategy.md` Error Handling & Backoff
 
-- [ ] **2.6 Implement polling scheduler**
+- [x] **2.6 Implement polling scheduler**
   - Default intervals: new=5min, hot=15min, top=1hr, submolts=6hr, comments/agents=on-demand
   - Adaptive intervals based on activity rate (high activity → more frequent, low → less)
   - Track last seen post ID per endpoint in `poll_state` table
@@ -599,7 +599,7 @@ These inconsistencies between specs were identified and resolved:
 - [x] AGENTS.md operational guide created
 - [x] Ralph loop scripts configured (loop.sh, PROMPT_plan.md, PROMPT_build.md)
 - [x] Phase 1: Foundation & Security Infrastructure (5 tasks)
-- [ ] Phase 2: Moltbook API Client (6 tasks)
+- [x] Phase 2: Moltbook API Client (6 tasks)
 - [ ] Phase 3: DuckDB Data Layer (9 tasks) — includes sentiment, snapshots
 - [ ] Phase 4: Dynamic Theme Discovery (10 tasks)
 - [ ] Phase 5: CLI Commands - Basic (8 tasks)
@@ -617,6 +617,15 @@ These inconsistencies between specs were identified and resolved:
 - Implemented health check endpoint (/health) with FastAPI
 - Added network isolation verification tests (5 skipped outside Docker, will run in container)
 - All 38 tests passing, mypy + ruff checks passing
+
+### Phase 2: Moltbook API Client (2026-02-01)
+- Created api_client.py with MoltbookClient class supporting all read-only endpoints
+- Created rate_limiter.py with sliding window rate limiting (100/min, 5000/hr, 50000/day)
+- Created backoff.py with exponential backoff and error classification
+- Created robots.py for robots.txt compliance with caching
+- Created deduplication.py for content hash-based deduplication
+- Created scheduler.py with APScheduler for adaptive polling
+- All 192 tests passing, 5 skipped (Docker-only), mypy + ruff passing
 
 ---
 
