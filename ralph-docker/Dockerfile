@@ -16,8 +16,9 @@ RUN useradd -m -s /bin/bash ralph
 USER ralph
 WORKDIR /home/ralph
 
-# Create directory structure
-RUN mkdir -p .claude workspace prompts
+# Create directory structure with required subdirectories
+RUN mkdir -p .claude/debug .claude/todos .claude/statsig workspace prompts && \
+    echo '{}' > .claude/remote-settings.json
 
 # Copy scripts and libraries
 COPY --chown=ralph:ralph scripts/ scripts/

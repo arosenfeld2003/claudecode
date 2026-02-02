@@ -29,34 +29,71 @@ log_success() {
 
 # Detect authentication mode
 detect_auth() {
-    if [ "${ANTHROPIC_AUTH_TOKEN:-}" = "ollama" ]; then
-        log_info "Auth mode: Ollama (local)"
+    local base_url="${ANTHROPIC_BASE_URL:-}"
+    local api_key="${ANTHROPIC_API_KEY:-}"
+
+    # Check if using LiteLLM proxy (Ollama mode) - check both URL patterns and API key
+    if [[ "$base_url" == *"litellm"* ]] || [[ "$base_url" == *":4000"* ]]; then
+        log_info "Auth mode: LiteLLM proxy -> Ollama (local)"
         return 0
-    elif [ -f "$HOME/.claude/credentials.json" ] || [ -f "$HOME/.claude/.credentials.json" ]; then
+    elif [ -n "$api_key" ] && [ -n "$base_url" ]; then
+        log_info "Auth mode: API Key with custom base URL"
+        return 0
+    elif [ -f "$HOME/.claude/.credentials.json" ]; then
+        log_info "Auth mode: OAuth credentials file (Max subscription)"
+        return 0
+    elif [ -f "$HOME/.claude/credentials.json" ]; then
         log_info "Auth mode: OAuth (Max subscription)"
+        return 0
+    elif [ -n "$api_key" ]; then
+        log_info "Auth mode: API Key"
         return 0
     else
         log_error "No authentication found!"
-        log_error "For OAuth: Mount ~/.claude to /home/ralph/.claude"
-        log_error "For Ollama: Set ANTHROPIC_AUTH_TOKEN=ollama and ANTHROPIC_BASE_URL"
+        log_error "For OAuth on macOS: Use ./scripts/run-with-keychain.sh"
+        log_error "For Ollama: Use --profile ollama with docker compose"
         return 1
     fi
 }
 
-# Verify Ollama connectivity (if using Ollama mode)
-verify_ollama() {
-    if [ "${ANTHROPIC_AUTH_TOKEN:-}" = "ollama" ]; then
-        local ollama_url="${ANTHROPIC_BASE_URL:-http://host.docker.internal:11434}"
-        log_info "Checking Ollama at $ollama_url..."
+# Wait for LiteLLM proxy to be ready
+wait_for_litellm() {
+    local base_url="${ANTHROPIC_BASE_URL:-}"
+    local api_key="${ANTHROPIC_API_KEY:-}"
 
-        if ! curl -sf "${ollama_url}/api/tags" &> /dev/null; then
-            log_error "Cannot connect to Ollama at $ollama_url"
-            log_error "Make sure Ollama is running on the host: ollama serve"
-            return 1
+    # Only wait if using LiteLLM
+    if [[ "$base_url" != *"litellm"* ]] && [[ "$base_url" != *":4000"* ]]; then
+        return 0
+    fi
+
+    log_info "Waiting for LiteLLM proxy..."
+
+    local max_attempts=30
+    local attempt=1
+    local auth_header=""
+
+    # Add auth header if API key is set
+    if [ -n "$api_key" ]; then
+        auth_header="-H \"Authorization: Bearer $api_key\""
+    fi
+
+    while [ $attempt -le $max_attempts ]; do
+        # Try health endpoint with auth
+        if curl -sf -H "Authorization: Bearer $api_key" "${base_url}/health" &> /dev/null; then
+            echo ""
+            log_success "LiteLLM proxy is ready"
+            return 0
         fi
 
-        log_success "Ollama connection verified"
-    fi
+        echo -ne "\r${CYAN}[ralph]${NC} Waiting for LiteLLM... attempt $attempt/$max_attempts"
+        sleep 2
+        attempt=$((attempt + 1))
+    done
+
+    echo ""
+    log_error "LiteLLM proxy did not become ready"
+    log_error "Check if Ollama is running on the host: ollama serve"
+    return 1
 }
 
 # Verify workspace is mounted
@@ -69,6 +106,13 @@ verify_workspace() {
 
 # Display configuration
 show_config() {
+    local base_url="${ANTHROPIC_BASE_URL:-}"
+    local backend="Claude API (cloud)"
+
+    if [[ "$base_url" == *"litellm"* ]] || [[ "$base_url" == *":4000"* ]]; then
+        backend="LiteLLM -> Ollama (local)"
+    fi
+
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  Ralph Loop - Containerized"
@@ -78,11 +122,7 @@ show_config() {
     echo "  Format:     ${RALPH_OUTPUT_FORMAT:-pretty}"
     echo "  Max Iter:   ${RALPH_MAX_ITERATIONS:-0} (0=unlimited)"
     echo "  Push:       ${RALPH_PUSH_AFTER_COMMIT:-true}"
-    if [ "${ANTHROPIC_AUTH_TOKEN:-}" = "ollama" ]; then
-        echo "  Backend:    Ollama (local)"
-    else
-        echo "  Backend:    Claude API (cloud)"
-    fi
+    echo "  Backend:    $backend"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 }
@@ -95,7 +135,7 @@ main() {
     case "$cmd" in
         loop)
             detect_auth || exit 1
-            verify_ollama || exit 1
+            wait_for_litellm || exit 1
             verify_workspace
             show_config
             exec /home/ralph/scripts/loop.sh "$@"
@@ -109,7 +149,7 @@ main() {
             ;;
         test)
             detect_auth || exit 1
-            verify_ollama || exit 1
+            wait_for_litellm || exit 1
             log_success "All checks passed!"
             claude --version
             ;;
@@ -127,7 +167,7 @@ COMMANDS:
 ENVIRONMENT VARIABLES:
   RALPH_MODE              build|plan (default: build)
   RALPH_MAX_ITERATIONS    Max iterations, 0=unlimited (default: 0)
-  RALPH_MODEL             Model name (default: opus)
+  RALPH_MODEL             Model name (default: opus, or ollama/model for local)
   RALPH_OUTPUT_FORMAT     pretty|json (default: pretty)
   RALPH_PUSH_AFTER_COMMIT Push to git after commits (default: true)
 
@@ -139,11 +179,14 @@ EXAMPLES:
   # OAuth mode (Max subscription)
   docker compose up ralph
 
-  # Ollama mode (local models)
+  # Ollama mode (local models via LiteLLM proxy)
   docker compose --profile ollama up ralph-ollama
 
   # Plan mode with 5 iterations
   RALPH_MODE=plan RALPH_MAX_ITERATIONS=5 docker compose up ralph
+
+  # Use a different Ollama model
+  RALPH_MODEL=ollama/qwen2.5-coder:7b docker compose --profile ollama up ralph-ollama
 
   # Interactive shell for debugging
   docker compose run --rm ralph shell

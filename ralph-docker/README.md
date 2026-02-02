@@ -13,31 +13,50 @@ This container runs the Ralph Wiggum methodology in a Docker environment, provid
 
 ## Quick Start
 
-### OAuth Mode (Max Subscription)
+### OAuth Mode (Max Subscription) - macOS
+
+On macOS, use the keychain helper script to extract credentials:
 
 ```bash
 # Run with current directory as workspace
-docker compose up ralph
+./scripts/run-with-keychain.sh up ralph
 
 # Run with specific project
-WORKSPACE_PATH=/path/to/project docker compose up ralph
+WORKSPACE_PATH=/path/to/project ./scripts/run-with-keychain.sh up ralph
 
 # Plan mode, limited iterations
-RALPH_MODE=plan RALPH_MAX_ITERATIONS=5 docker compose up ralph
+RALPH_MODE=plan RALPH_MAX_ITERATIONS=5 ./scripts/run-with-keychain.sh up ralph
+```
+
+The script extracts your Claude credentials from macOS Keychain, makes them available to the container, and automatically cleans them up when finished.
+
+### OAuth Mode (Max Subscription) - Linux/Direct
+
+If credentials are stored in a file (not keychain):
+
+```bash
+docker compose up ralph
 ```
 
 ### Ollama Mode (Local Models)
+
+Uses LiteLLM proxy to translate Anthropic API calls to Ollama format.
 
 ```bash
 # Make sure Ollama is running on your host
 ollama serve
 
+# Pull a model if needed
+ollama pull qwen2.5-coder:32b
+
 # Run with default model (qwen2.5-coder:32b)
 docker compose --profile ollama up ralph-ollama
 
 # Run with different model
-RALPH_MODEL=qwen2.5-coder:7b docker compose --profile ollama up ralph-ollama
+RALPH_MODEL=ollama/qwen2.5-coder:7b docker compose --profile ollama up ralph-ollama
 ```
+
+The `--profile ollama` flag starts both the LiteLLM proxy and ralph-ollama containers.
 
 ## Configuration
 
@@ -115,6 +134,23 @@ docker compose build
 docker compose build --no-cache
 ```
 
+## LiteLLM Configuration
+
+The `litellm-config.yaml` file defines available Ollama models. Pre-configured models:
+
+- `ollama/qwen2.5-coder:32b` (default)
+- `ollama/qwen2.5-coder:14b`
+- `ollama/qwen2.5-coder:7b`
+- `ollama/deepseek-coder-v2`
+- `ollama/codellama:34b`
+- `ollama/llama3.1:70b`
+- And more...
+
+To use a model, specify it with the `ollama/` prefix:
+```bash
+RALPH_MODEL=ollama/codellama:13b docker compose --profile ollama up ralph-ollama
+```
+
 ## Troubleshooting
 
 ### OAuth Authentication Failed
@@ -162,36 +198,44 @@ The `/ralph` skill in Claude Code can launch this container:
 
 ## Architecture
 
+### OAuth Mode (Cloud)
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Docker Container                      │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │                     entrypoint.sh                    │ │
-│  │  - Auth detection                                    │ │
-│  │  - Command routing                                   │ │
-│  │  - Environment setup                                 │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                           │                              │
-│                           ▼                              │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │                      loop.sh                         │ │
-│  │  - Iteration management                              │ │
-│  │  - Claude CLI invocation                             │ │
-│  │  - Git operations                                    │ │
-│  └─────────────────────────────────────────────────────┘ │
-│                           │                              │
-│                           ▼                              │
-│  ┌─────────────────────────────────────────────────────┐ │
-│  │              format-output.sh / .js                  │ │
-│  │  - stream-json parsing                               │ │
-│  │  - Human-readable formatting                         │ │
-│  │  - Color coding                                      │ │
-│  └─────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
-          │                                    │
-          ▼                                    ▼
-    ┌───────────┐                      ┌───────────────┐
-    │ Workspace │                      │ Claude API /  │
-    │ (mounted) │                      │ Ollama        │
-    └───────────┘                      └───────────────┘
+│                    ralph container                       │
+│  entrypoint.sh → loop.sh → format-output.sh              │
+│                      │                                   │
+│                      ▼                                   │
+│                 Claude CLI                               │
+└──────────────────────┼──────────────────────────────────┘
+                       │
+                       ▼
+              ┌─────────────────┐
+              │  Claude API     │
+              │  (Anthropic)    │
+              └─────────────────┘
+```
+
+### Ollama Mode (Local)
+```
+┌─────────────────────────────────────────────────────────┐
+│                 ralph-ollama container                   │
+│  entrypoint.sh → loop.sh → format-output.sh              │
+│                      │                                   │
+│                      ▼                                   │
+│                 Claude CLI                               │
+│                      │                                   │
+│         ANTHROPIC_BASE_URL=http://litellm:4000           │
+└──────────────────────┼──────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│                  litellm container                       │
+│  Translates Anthropic API → Ollama API                   │
+└──────────────────────┼──────────────────────────────────┘
+                       │
+                       ▼
+              ┌─────────────────┐
+              │  Ollama         │
+              │  (host machine) │
+              └─────────────────┘
 ```
