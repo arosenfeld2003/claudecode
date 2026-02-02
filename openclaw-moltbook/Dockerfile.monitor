@@ -1,0 +1,46 @@
+FROM python:3.12-slim
+
+# Create non-root user
+RUN groupadd -g 1000 monitor && \
+    useradd -u 1000 -g monitor -s /bin/bash -m monitor
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY pyproject.toml ./
+
+# Install Python dependencies
+RUN pip install --no-cache-dir pip --upgrade && \
+    pip install --no-cache-dir .
+
+# Copy application source
+COPY src/ ./src/
+
+# Create data directory
+RUN mkdir -p /app/data && chown -R monitor:monitor /app/data
+
+# Change ownership of app directory
+RUN chown -R monitor:monitor /app
+
+# Switch to non-root user
+USER monitor
+
+# Expose health check port
+EXPOSE 8000
+
+# Set Python path
+ENV PYTHONPATH=/app/src
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=10s \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=5)" || exit 1
+
+# Default command
+ENTRYPOINT ["python", "-m", "monitor"]
+CMD ["--help"]

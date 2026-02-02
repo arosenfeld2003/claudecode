@@ -1,0 +1,66 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# Virtual environments
+.venv
+venv
+env
+.env
+
+# Distribution
+build
+dist
+*.egg-info
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Documentation
+docs/_build
+*.md
+!README.md
+
+# Tests (not needed in production image)
+tests/
+
+# Development files
+*.log
+.DS_Store
+Thumbs.db
+
+# Specs and planning (not needed in image)
+specs/
+IMPLEMENTATION_PLAN.md
+PROMPT_*.md
+loop.sh
+
+# Local secrets
+.env.local
+.env.*.local
+secrets/
+credentials/
+
+# DuckDB (data is in volume)
+*.duckdb
+*.duckdb.wal
+data/
+
+# Docker compose is not needed inside containers
+docker-compose*.yml
+Dockerfile.*

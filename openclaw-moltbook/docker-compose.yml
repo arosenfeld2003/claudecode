@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: openclaw-proxy
+    networks:
+      - openclaw-internal
+      - openclaw-external
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/allowlist.conf:/etc/nginx/allowlist.conf:ro
+      - proxy-logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    container_name: openclaw-monitor
+    networks:
+      - openclaw-internal
+    depends_on:
+      proxy:
+        condition: service_healthy
+    environment:
+      - HTTP_PROXY=http://proxy:8080
+      - HTTPS_PROXY=http://proxy:8080
+      - NO_PROXY=localhost,127.0.0.1
+    volumes:
+      - monitor-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M,mode=1777
+    user: "1000:1000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  openclaw-internal:
+    driver: bridge
+    internal: true
+  openclaw-external:
+    driver: bridge
+
+volumes:
+  monitor-data:
+    driver: local
+  proxy-logs:
+    driver: local
