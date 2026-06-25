@@ -4,17 +4,20 @@ Tests cover:
 - Health endpoints
 - API responses
 - CORS and middleware
+- Admin auth endpoints
 """
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from monitor.admin_auth import hash_password, save_password_hash
 from monitor.web import app
 
-client = TestClient(app)
+client = TestClient(app, raise_server_exceptions=True)
 
 
 class TestRootEndpoint:
@@ -93,6 +96,67 @@ class TestDetailedHealthEndpoint:
                 data = response.json()
                 assert data["components"]["database"]["healthy"] is True
                 assert data["components"]["proxy"]["healthy"] is False
+
+
+class TestAdminEndpoints:
+    """Tests for /admin/* endpoints."""
+
+    def _creds_env(self, tmp_path: Path) -> dict[str, str]:
+        return {"ADMIN_CREDS_PATH": str(tmp_path / "admin.creds"), "ADMIN_PASSWORD_HASH": ""}
+
+    def test_status_requires_auth(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, self._creds_env(tmp_path)):
+            save_password_hash(hash_password("pass1234"))
+            response = client.get("/admin/status")
+        assert response.status_code == 401
+
+    def test_status_rejects_wrong_credentials(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, self._creds_env(tmp_path)):
+            save_password_hash(hash_password("correct"))
+            response = client.get("/admin/status", auth=("admin", "wrong"))
+        assert response.status_code == 401
+
+    def test_status_accepts_correct_credentials(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, self._creds_env(tmp_path)):
+            save_password_hash(hash_password("correct"))
+            response = client.get("/admin/status", auth=("admin", "correct"))
+        assert response.status_code == 200
+        assert response.json()["authenticated"] is True
+
+    def test_change_password_rejects_unauthenticated(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, self._creds_env(tmp_path)):
+            save_password_hash(hash_password("original"))
+            response = client.post(
+                "/admin/change-password", json={"new_password": "newpass1234"}
+            )
+        assert response.status_code == 401
+
+    def test_change_password_succeeds_and_new_password_works(self, tmp_path: Path) -> None:
+        env = self._creds_env(tmp_path)
+        with patch.dict(os.environ, env):
+            save_password_hash(hash_password("original"))
+            r = client.post(
+                "/admin/change-password",
+                json={"new_password": "brandnew99"},
+                auth=("admin", "original"),
+            )
+            assert r.status_code == 204
+            # old password no longer works
+            r2 = client.get("/admin/status", auth=("admin", "original"))
+            assert r2.status_code == 401
+            # new password works
+            r3 = client.get("/admin/status", auth=("admin", "brandnew99"))
+            assert r3.status_code == 200
+
+    def test_change_password_rejects_short_password(self, tmp_path: Path) -> None:
+        with patch.dict(os.environ, self._creds_env(tmp_path)):
+            save_password_hash(hash_password("original"))
+            r = client.post(
+                "/admin/change-password",
+                json={"new_password": "short"},
+                auth=("admin", "original"),
+            )
+        assert r.status_code == 400
 
 
 class TestOpenAPIDocumentation:

@@ -12,6 +12,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from monitor.admin_auth import hash_password, is_password_set, save_password_hash
 from monitor.health import HealthChecker
 
 app = typer.Typer(
@@ -19,6 +20,9 @@ app = typer.Typer(
     help="OpenClaw Moltbook Monitor - Safely monitor and analyze the Moltbook platform",
     no_args_is_help=True,
 )
+
+admin_app = typer.Typer(name="admin", help="Admin credential management", no_args_is_help=True)
+app.add_typer(admin_app, name="admin")
 
 console = Console()
 
@@ -207,6 +211,50 @@ def version() -> None:
     from monitor import __version__
 
     console.print(f"OpenClaw Moltbook Monitor v{__version__}")
+
+
+@admin_app.command("set-password")
+def admin_set_password() -> None:
+    """Set the initial admin password (only works when no password is configured).
+
+    Use 'reset-password' if you need to override an existing password.
+    """
+    if is_password_set():
+        console.print(
+            "[red]An admin password is already set.[/red] "
+            "Use [bold]monitor admin reset-password[/bold] to override it."
+        )
+        raise typer.Exit(code=1)
+
+    password = typer.prompt("New admin password", hide_input=True, confirmation_prompt=True)
+    if len(password) < 8:
+        console.print("[red]Password must be at least 8 characters.[/red]")
+        raise typer.Exit(code=1)
+
+    save_password_hash(hash_password(password))
+    console.print("[green]Admin password set successfully.[/green]")
+
+
+@admin_app.command("reset-password")
+def admin_reset_password() -> None:
+    """Reset the admin password without requiring the current one.
+
+    This is a local escape hatch for when the current password is lost or broken.
+    Requires direct access to the server where credentials are stored.
+    """
+    console.print(
+        "[yellow]WARNING:[/yellow] This resets the admin password "
+        "without verifying the current one."
+    )
+    typer.confirm("Continue?", abort=True)
+
+    password = typer.prompt("New admin password", hide_input=True, confirmation_prompt=True)
+    if len(password) < 8:
+        console.print("[red]Password must be at least 8 characters.[/red]")
+        raise typer.Exit(code=1)
+
+    save_password_hash(hash_password(password))
+    console.print("[green]Admin password reset successfully.[/green]")
 
 
 if __name__ == "__main__":
